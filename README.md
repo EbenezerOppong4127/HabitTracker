@@ -23,7 +23,7 @@ This application is designed to promote productivity and consistency by allowing
 ---
 
 ## Trello workspace
-[Habit Tracker – .NET Blazor Project]("https://trello.com/b/kOeOa2FE/habit-tracker-net-blazor-project")
+[Habit Tracker – .NET Blazor Project](https://trello.com/b/kOeOa2FE/habit-tracker-net-blazor-project)
 
 
 ## 🚀 Features
