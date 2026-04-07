@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet ef:*)",
+      "Bash(dotnet --version)",
+      "Bash(mysql -u root -e \"CREATE DATABASE IF NOT EXISTS habittracker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\")",
+      "Bash(dotnet build:*)",
+      "Bash(\"C:/Users/jules.tro/.dotnet/dotnet.exe\" --list-sdks)",
+      "Bash(\"C:/Users/jules.tro/.dotnet/dotnet.exe\" --list-runtimes)",
+      "Bash(\"C:/Users/jules.tro/.dotnet/dotnet.exe\" build:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd:*)",
+      "Bash(powershell.exe:*)"
+    ]
+  }
+}

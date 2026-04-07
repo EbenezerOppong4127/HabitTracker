@@ -4,34 +4,60 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HabitTracker.Services
 {
-    public class HabitService
+    public class HabitService(ApplicationDbContext context)
     {
-        private readonly ApplicationDbContext _context;
+        public async Task<List<Habit>> GetHabitsAsync(string userId) =>
+            await context.Habits
+                .Where(h => h.UserId == userId)
+                .OrderBy(h => h.Name)
+                .ToListAsync();
 
-        public HabitService(ApplicationDbContext context)
+        public async Task<Habit?> GetHabitAsync(int id, string userId) =>
+            await context.Habits
+                .FirstOrDefaultAsync(h => h.Id == id && h.UserId == userId);
+
+        public async Task<Habit> AddHabitAsync(Habit habit)
         {
-            _context = context;
+            context.Habits.Add(habit);
+            await context.SaveChangesAsync();
+            return habit;
         }
 
-        public async Task<List<Habit>> GetHabits()
+        public async Task<bool> UpdateHabitAsync(Habit habit, string userId)
         {
-            return await _context.Habits.ToListAsync();
+            var existing = await context.Habits
+                .FirstOrDefaultAsync(h => h.Id == habit.Id && h.UserId == userId);
+            if (existing is null) return false;
+
+            existing.Name        = habit.Name;
+            existing.Description = habit.Description;
+            existing.Frequency   = habit.Frequency;
+            existing.Status      = habit.Status;
+            await context.SaveChangesAsync();
+            return true;
         }
 
-        public async Task AddHabit(Habit habit)
+        /// <summary>Move a habit to a different Kanban column without touching other fields.</summary>
+        public async Task<bool> UpdateStatusAsync(int id, KanbanStatus status, string userId)
         {
-            _context.Habits.Add(habit);
-            await _context.SaveChangesAsync();
+            var habit = await context.Habits
+                .FirstOrDefaultAsync(h => h.Id == id && h.UserId == userId);
+            if (habit is null) return false;
+
+            habit.Status = status;
+            await context.SaveChangesAsync();
+            return true;
         }
 
-        public async Task DeleteHabit(int id)
+        public async Task<bool> DeleteHabitAsync(int id, string userId)
         {
-            var habit = await _context.Habits.FindAsync(id);
-            if (habit != null)
-            {
-                _context.Habits.Remove(habit);
-                await _context.SaveChangesAsync();
-            }
+            var habit = await context.Habits
+                .FirstOrDefaultAsync(h => h.Id == id && h.UserId == userId);
+            if (habit is null) return false;
+
+            context.Habits.Remove(habit);
+            await context.SaveChangesAsync();
+            return true;
         }
     }
 }

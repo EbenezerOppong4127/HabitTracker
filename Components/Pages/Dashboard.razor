@@ -1,0 +1,122 @@
+@page "/dashboard"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject DashboardService DashboardService
+
+<PageTitle>Dashboard</PageTitle>
+
+@if (_stats is null)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Dashboard</h2>
+        <a href="/habits" class="btn btn-primary btn-sm px-3">Manage Habits</a>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm stat-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="stat-number text-primary">@_stats.TotalHabits</div>
+                    <div class="stat-label">Total Habits</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm stat-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="stat-number text-success">@_stats.CompletedToday</div>
+                    <div class="stat-label">Done Today</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm stat-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="stat-number text-warning">@_stats.CurrentStreak</div>
+                    <div class="stat-label">Day Streak 🔥</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm stat-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="stat-number text-info">
+                        @(_stats.TotalHabits > 0
+                            ? $"{Math.Round((double)_stats.CompletedToday / _stats.TotalHabits * 100)}%"
+                            : "—")
+                    </div>
+                    <div class="stat-label">Today's Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Habit progress -->
+    @if (_stats.HabitProgress.Count == 0)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <p class="text-muted mb-2">No habits yet.</p>
+                <a href="/habits" class="btn btn-primary btn-sm">Add Your First Habit</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom fw-semibold py-3">
+                Weekly Progress
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var item in _stats.HabitProgress)
+                {
+                    <li class="list-group-item px-4 py-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill @(item.CompletedToday ? "bg-success" : "bg-secondary") small">
+                                    @(item.CompletedToday ? "Done" : "Pending")
+                                </span>
+                                <span class="fw-medium">@item.Habit.Name</span>
+                                <span class="badge bg-light text-secondary small">@item.Habit.Frequency</span>
+                            </div>
+                            <span class="text-muted small">@item.WeeklyPercent%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar @(item.WeeklyPercent >= 70 ? "bg-success" : item.WeeklyPercent >= 40 ? "bg-warning" : "bg-danger")"
+                                 role="progressbar"
+                                 style="width: @item.WeeklyPercent%"
+                                 aria-valuenow="@item.WeeklyPercent"
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(item.Habit.Description))
+                        {
+                            <small class="text-muted">@item.Habit.Description</small>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthStateTask { get; set; } = null!;
+
+    private DashboardStats? _stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateTask;
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        _stats = await DashboardService.GetStatsAsync(userId);
+    }
+}

@@ -1,31 +1,51 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">HabitTracker</a>
+<nav class="ht-navbar navbar navbar-dark navbar-expand-lg px-3 px-lg-5">
+    <a class="navbar-brand ht-brand" href="/">
+        <span class="brand-icon">&#128203;</span>
+        <span class="brand-text">HabitTracker</span>
+    </a>
+
+    <button class="navbar-toggler border-0" type="button"
+            data-bs-toggle="collapse" data-bs-target="#navbarMain"
+            aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarMain">
+        <AuthorizeView>
+            <Authorized>
+                <ul class="navbar-nav mx-auto mb-0 gap-1">
+                    <li class="nav-item">
+                        <NavLink class="nav-link ht-nav-link" href="/dashboard" Match="NavLinkMatch.All">
+                            Dashboard
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link ht-nav-link" href="/habits">
+                            Habits
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link ht-nav-link" href="/kanban">
+                            Kanban
+                        </NavLink>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="ht-user-badge">&#128100;&nbsp;@context.User.Identity?.Name</span>
+                    <a href="/logout" class="btn ht-btn-signout btn-sm">Sign out</a>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <ul class="navbar-nav me-auto mb-0">
+                    <li class="nav-item">
+                        <NavLink class="nav-link ht-nav-link" href="/" Match="NavLinkMatch.All">Home</NavLink>
+                    </li>
+                </ul>
+                <div class="d-flex gap-2">
+                    <a href="/login" class="btn ht-btn-signout btn-sm">Sign In</a>
+                    <a href="/register" class="btn ht-btn-register btn-sm px-3">Register</a>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </div>
-</div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-        <NavLink href="/habits">Habits</NavLink>
-    </nav>
-</div>
-
+</nav>

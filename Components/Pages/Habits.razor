@@ -1,47 +1,242 @@
 @page "/habits"
-@inject HabitTracker.Services.HabitService HabitService
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject HabitService HabitService
+@inject HabitLogService HabitLogService
 
-<h3>Habits</h3>
+<PageTitle>My Habits</PageTitle>
 
-<input @bind="newHabit" placeholder="New Habit" />
-<button @onclick="AddHabit">Add</button>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-0">My Habits</h2>
+        <p class="text-muted small mb-0" style="font-style:italic">Changes here are reflected in the Kanban board instantly.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/kanban" class="btn btn-outline-secondary btn-sm px-3">View Kanban</a>
+        <button class="btn btn-primary btn-sm px-3" @onclick="ShowAddForm">+ Add Habit</button>
+    </div>
+</div>
 
-<ul>
-    @foreach (var habit in habits)
-    {
-        <li>
-            @habit.Name
-            <button @onclick="() => DeleteHabit(habit.Id)">Delete</button>
-        </li>
-    }
-</ul>
+<!-- Add / Edit form -->
+@if (_showForm)
+{
+    <div class="card mb-4">
+        <div class="card-header py-3">
+            @(_editingHabit.Id == 0 ? "New Habit" : "Edit Habit")
+        </div>
+        <div class="card-body p-4">
+            <EditForm Model="_editingHabit" OnValidSubmit="SaveHabitAsync">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(_formError))
+                {
+                    <div class="alert alert-danger py-2 small">@_formError</div>
+                }
+
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Name <span class="text-danger">*</span></label>
+                        <InputText @bind-Value="_editingHabit.Name" class="form-control" placeholder="e.g. Morning run" maxlength="100" />
+                        <ValidationMessage For="() => _editingHabit.Name" class="text-danger small" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Frequency</label>
+                        <InputSelect @bind-Value="_editingHabit.Frequency" class="form-select">
+                            <option value="@HabitFrequency.Daily">Daily</option>
+                            <option value="@HabitFrequency.Weekly">Weekly</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Kanban Status</label>
+                        <InputSelect @bind-Value="_editingHabit.Status" class="form-select">
+                            <option value="@KanbanStatus.Create">Create</option>
+                            <option value="@KanbanStatus.Doing">Doing</option>
+                            <option value="@KanbanStatus.End">End</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Description</label>
+                        <InputTextArea @bind-Value="_editingHabit.Description" class="form-control" rows="2"
+                                       maxlength="500" placeholder="Optional description..." />
+                        <ValidationMessage For="() => _editingHabit.Description" class="text-danger small" />
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        @(_editingHabit.Id == 0 ? "Create" : "Save Changes")
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelForm">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<!-- Habits list -->
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border" role="status"></div>
+    </div>
+}
+else if (_habits.Count == 0)
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <p class="text-muted mb-2">You haven't added any habits yet.</p>
+            <button class="btn btn-primary btn-sm" @onclick="ShowAddForm">Add Your First Habit</button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var habit in _habits)
+        {
+            var statusInfo = GetStatusInfo(habit.Status);
+            <div class="col-12">
+                <div class="card habit-card @(_todayStatus.ContainsKey(habit.Id) ? "completed" : "")"
+                     style="border-left: 4px solid @statusInfo.Color !important;">
+                    <div class="card-body d-flex align-items-center gap-3 px-4 py-3">
+
+                        <!-- Complete today checkbox -->
+                        <input type="checkbox"
+                               class="habit-check"
+                               checked="@_todayStatus.ContainsKey(habit.Id)"
+                               @onchange="() => ToggleAsync(habit.Id)"
+                               id="habit-@habit.Id" />
+
+                        <!-- Info -->
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <label for="habit-@habit.Id"
+                                       class="fw-medium mb-0 habit-name @(_todayStatus.ContainsKey(habit.Id) ? "text-decoration-line-through text-muted" : "")">
+                                    @habit.Name
+                                </label>
+                                <span class="badge" style="background:@statusInfo.Color; font-size:0.68rem; letter-spacing:0.06em;">
+                                    @statusInfo.Label
+                                </span>
+                                <span class="badge bg-light text-secondary" style="font-size:0.68rem;">@habit.Frequency</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(habit.Description))
+                            {
+                                <small class="text-muted fst-italic">@habit.Description</small>
+                            }
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-flex gap-2 flex-shrink-0">
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => EditHabit(habit)">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => _confirmDeleteId = habit.Id">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- Delete confirmation -->
+@if (_confirmDeleteId.HasValue)
+{
+    <div class="modal-backdrop-custom" @onclick="() => _confirmDeleteId = null"></div>
+    <div class="confirm-dialog card shadow p-4">
+        <h6 class="fw-semibold mb-2">Delete this habit?</h6>
+        <p class="text-muted small mb-3">This will also remove all completion history.</p>
+        <div class="d-flex gap-2">
+            <button class="btn btn-danger btn-sm" @onclick="DeleteConfirmedAsync">Delete</button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="() => _confirmDeleteId = null">Cancel</button>
+        </div>
+    </div>
+}
 
 @code {
-    private List<HabitTracker.Models.Habit> habits = new();
-    private string newHabit = "";
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = null!;
+
+    private string _userId = string.Empty;
+    private List<Habit> _habits = [];
+    private Dictionary<int, bool> _todayStatus = [];
+    private bool _loading = true;
+    private bool _showForm;
+    private Habit _editingHabit = new();
+    private string? _formError;
+    private int? _confirmDeleteId;
+
+    private record StatusInfo(string Label, string Color);
+    private static StatusInfo GetStatusInfo(KanbanStatus s) => s switch
+    {
+        KanbanStatus.Create => new("Create",  "#1a237e"),
+        KanbanStatus.Doing  => new("Doing",   "#b8860b"),
+        KanbanStatus.End    => new("End",     "#1b5e20"),
+        _                   => new("Create",  "#1a237e")
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        habits = await HabitService.GetHabits();
+        var auth = await AuthStateTask;
+        _userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        await LoadAsync();
     }
 
-    private async Task AddHabit()
+    private async Task LoadAsync()
     {
-        if (!string.IsNullOrWhiteSpace(newHabit))
-        {
-            await HabitService.AddHabit(new HabitTracker.Models.Habit
-            {
-                Name = newHabit
-            });
+        _loading = true;
+        _habits = await HabitService.GetHabitsAsync(_userId);
+        _todayStatus = await HabitLogService.GetTodayStatusAsync(_userId);
+        _loading = false;
+    }
 
-            newHabit = "";
-            habits = await HabitService.GetHabits();
+    private void ShowAddForm()
+    {
+        _editingHabit = new Habit();
+        _formError = null;
+        _showForm = true;
+    }
+
+    private void EditHabit(Habit h)
+    {
+        _editingHabit = new Habit
+        {
+            Id = h.Id, Name = h.Name, Description = h.Description,
+            Frequency = h.Frequency, Status = h.Status, UserId = h.UserId
+        };
+        _formError = null;
+        _showForm = true;
+    }
+
+    private void CancelForm() { _showForm = false; _formError = null; }
+
+    private async Task SaveHabitAsync()
+    {
+        _formError = null;
+        if (_editingHabit.Id == 0)
+        {
+            _editingHabit.UserId = _userId;
+            await HabitService.AddHabitAsync(_editingHabit);
+        }
+        else
+        {
+            if (!await HabitService.UpdateHabitAsync(_editingHabit, _userId))
+            { _formError = "Could not save. Please try again."; return; }
+        }
+        _showForm = false;
+        await LoadAsync();
+    }
+
+    private async Task DeleteConfirmedAsync()
+    {
+        if (_confirmDeleteId.HasValue)
+        {
+            await HabitService.DeleteHabitAsync(_confirmDeleteId.Value, _userId);
+            _confirmDeleteId = null;
+            await LoadAsync();
         }
     }
 
-    private async Task DeleteHabit(int id)
+    private async Task ToggleAsync(int habitId)
     {
-        await HabitService.DeleteHabit(id);
-        habits = await HabitService.GetHabits();
+        await HabitLogService.ToggleCompletionAsync(habitId, _userId);
+        _todayStatus = await HabitLogService.GetTodayStatusAsync(_userId);
     }
 }
