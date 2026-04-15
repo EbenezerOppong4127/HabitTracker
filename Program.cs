@@ -56,14 +56,19 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.Migrate();
 }
 
+// Temporarily show detailed errors to debug Railway deployment issues
+app.UseDeveloperExceptionPage();
+
+/*
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+*/
 
 app.UseStatusCodePagesWithReExecute("/not-found");
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); 
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
